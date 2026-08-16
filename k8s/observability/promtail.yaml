@@ -7,30 +7,20 @@ data:
   promtail.yml: |
     server:
       http_listen_port: 9080
+      grpc_listen_port: 0
+    positions:
+      filename: /run/positions.yaml
     clients:
       - url: http://loki:3100/loki/api/v1/push
-    positions:
-      filename: /run/promtail/positions.yaml
     scrape_configs:
-      - job_name: kubernetes-pods
-        kubernetes_sd_configs:
-          - role: pod
-        relabel_configs:
-          - action: replace
-            source_labels: [__meta_kubernetes_pod_name]
-            target_label: pod
-          - action: replace
-            source_labels: [__meta_kubernetes_namespace]
-            target_label: namespace
-          - action: replace
-            source_labels: [__meta_kubernetes_pod_label_app]
-            target_label: app
-          - action: replace
-            source_labels: [__meta_kubernetes_container_name]
-            target_label: container
-          - action: keep
-            source_labels: [__meta_kubernetes_pod_namespace]
-            regex: anamnesis
+      - job_name: pods
+        static_configs:
+          - targets: [localhost]
+            labels:
+              job: pods
+              __path__: /var/log/pods/*/*/*.log
+        pipeline_stages:
+          - cri: {}
 ---
 apiVersion: apps/v1
 kind: DaemonSet
@@ -49,63 +39,33 @@ spec:
         app: promtail
     spec:
       serviceAccountName: promtail
+      securityContext:
+        runAsUser: 0
+        runAsGroup: 0
+      tolerations:
+        - operator: Exists
       containers:
         - name: promtail
           image: grafana/promtail:3.4.2
           args:
             - -config.file=/etc/promtail/promtail.yml
+          ports:
+            - containerPort: 9080
+              name: http
           volumeMounts:
             - name: config
               mountPath: /etc/promtail
-            - name: logs
-              mountPath: /var/log
+            - name: run
+              mountPath: /run
             - name: podlogs
               mountPath: /var/log/pods
               readOnly: true
-            - name: run
-              mountPath: /run
-          resources:
-            requests: { cpu: 50m, memory: 128Mi }
-            limits: { cpu: 200m, memory: 512Mi }
       volumes:
         - name: config
           configMap:
             name: promtail-config
-        - name: logs
-          hostPath:
-            path: /var/log
         - name: run
           emptyDir: {}
         - name: podlogs
           hostPath:
             path: /var/log/pods
----
-apiVersion: v1
-kind: ServiceAccount
-metadata:
-  name: promtail
-  namespace: default
----
-apiVersion: rbac.authorization.k8s.io/v1
-kind: ClusterRole
-metadata:
-  name: promtail
-rules:
-  - apiGroups: [""]
-    resources: ["pods"]
-    verbs: ["get", "list", "watch"]
----
-apiVersion: rbac.authorization.k8s.io/v1
-kind: ClusterRoleBinding
-metadata:
-  name: promtail
-roleRef:
-  apiGroup: rbac.authorization.k8s.io
-  kind: ClusterRole
-  name: promtail
-subjects:
-  - kind: ServiceAccount
-    name: promtail
-    namespace: default
-
-
