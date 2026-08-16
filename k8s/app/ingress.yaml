@@ -3,8 +3,14 @@ kind: Ingress
 metadata:
   name: anamnesis-api
   namespace: default
+  annotations:
+    cert-manager.io/cluster-issuer: anamnesis-ca
 spec:
   ingressClassName: traefik
+  tls:
+    - hosts:
+        - anamnesis.local
+      secretName: anamnesis-tls
   rules:
     - host: anamnesis.local
       http:
@@ -23,6 +29,3 @@ spec:
                 name: anamnesis-web
                 port:
                   name: http
-
-
-
