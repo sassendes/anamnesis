@@ -48,6 +48,7 @@ case "${1:-}" in
     echo ">> operators ready. now build+import images, then: kubectl apply -k k8s/"
     ;;
 
+
   *)
     echo "usage:"
     echo "  ./setup-cluster.sh init                          (first node)"
