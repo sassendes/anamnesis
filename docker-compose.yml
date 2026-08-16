@@ -1,0 +1,62 @@
+name: anamnesis-local
+
+# The database superuser (postgres) runs migrations and seeding; the API runs
+# as the least-privileged anamnesis_app role so the row-level security policies
+# are actually enforced. Run `docker compose down -v` when changing roles so a
+# stale volume doesn't keep an old (superuser) anamnesis_app around.
+
+services:
+  db:
+    image: postgres:17-alpine
+    container_name: anamnesis-db
+    environment:
+      POSTGRES_DB: anamnesis
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: root
+    ports:
+      - "5432:5432"
+    volumes:
+      - dbdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d anamnesis"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  migrate:
+    build:
+      context: app
+      dockerfile: Dockerfile.dev
+    environment:
+      # superuser: migrations create roles/extensions and seed as owner
+      DATABASE_URL: postgres://postgres:root@db:5432/anamnesis?sslmode=disable
+      ANAMNESIS_DATABASE_URL: postgres://postgres:root@db:5432/anamnesis?sslmode=disable
+      ANAMNESIS_JWT_SECRET: admin
+      ANAMNESIS_RUN_MIGRATIONS: "1"
+    depends_on:
+      db:
+        condition: service_healthy
+    restart: "no"
+
+  api:
+    build:
+      context: app
+      dockerfile: Dockerfile.dev
+    environment:
+      # least-privileged app role: RLS applies, so tenant isolation is real
+      DATABASE_URL: postgres://anamnesis_app:root@db:5432/anamnesis?sslmode=disable
+      ANAMNESIS_DATABASE_URL: postgres://anamnesis_app:root@db:5432/anamnesis?sslmode=disable
+      ANAMNESIS_JWT_SECRET: admin
+      ANAMNESIS_LISTEN_ADDR: 0.0.0.0:8080
+      ANAMNESIS_METRICS_ADDR: 0.0.0.0:9090
+    ports:
+      - "8080:8080"
+      - "9090:9090"
+    depends_on:
+      db:
+        condition: service_healthy
+      migrate:
+        condition: service_completed_successfully
+
+volumes:
+  dbdata:

@@ -1,0 +1,109 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: anamnesis-api
+  namespace: default
+  labels:
+    app: anamnesis-api
+    app.kubernetes.io/name: anamnesis-api
+    app.kubernetes.io/component: api
+spec:
+  replicas: 2
+  strategy:
+    rollingUpdate:
+      maxUnavailable: 0
+      maxSurge: 1
+  selector:
+    matchLabels:
+      app: anamnesis-api
+  template:
+    metadata:
+      labels:
+        app: anamnesis-api
+        app.kubernetes.io/name: anamnesis-api
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/path: /metrics
+        prometheus.io/port: "8080"
+    spec:
+      serviceAccountName: anamnesis-api
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 65532
+        seccompProfile:
+          type: RuntimeDefault
+      affinity:
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+            - weight: 100
+              podAffinityTerm:
+                labelSelector:
+                  matchLabels:
+                    app: anamnesis-api
+                topologyKey: kubernetes.io/hostname
+      topologySpreadConstraints:
+        - maxSkew: 1
+          topologyKey: kubernetes.io/hostname
+          whenUnsatisfiable: ScheduleAnyway
+          labelSelector:
+            matchLabels:
+              app: anamnesis-api
+      containers:
+        - name: anamnesis-api
+          image: anamnesis:local
+          imagePullPolicy: Never
+          ports:
+            - name: http
+              containerPort: 8080
+          env:
+            - name: ANAMNESIS_DATABASE_URL
+              valueFrom:
+                secretKeyRef:
+                  name: anamnesis-secrets
+                  key: database-url
+            - name: ANAMNESIS_JWT_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: anamnesis-secrets
+                  key: jwt-secret
+            - name: ANAMNESIS_NATS_URL
+              value: "nats://nats:4222"
+            - name: ANAMNESIS_OTEL_ENDPOINT
+              value: "http://tempo:4318"
+            - name: ANAMNESIS_LISTEN_ADDR
+              value: "0.0.0.0:8080"
+            - name: ANAMNESIS_METRICS_ADDR
+              value: "0.0.0.0:9090"
+            - name: ANAMNESIS_JWT_TTL_SECONDS
+              value: "3600"
+            - name: ANAMNESIS_OUTBOX_INTERVAL_MS
+              value: "2000"
+          livenessProbe:
+            httpGet:
+              path: /api/v1/_health
+              port: http
+            initialDelaySeconds: 5
+            periodSeconds: 15
+            timeoutSeconds: 3
+          readinessProbe:
+            httpGet:
+              path: /api/v1/readyz
+              port: http
+            initialDelaySeconds: 5
+            periodSeconds: 10
+            timeoutSeconds: 3
+          resources:
+            requests:
+              cpu: 100m
+              memory: 128Mi
+            limits:
+              cpu: 500m
+              memory: 512Mi
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop:
+                - ALL
+
+

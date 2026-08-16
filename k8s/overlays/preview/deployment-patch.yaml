@@ -1,0 +1,31 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: anamnesis-api
+spec:
+  template:
+    spec:
+      containers:
+        - name: api
+          image: ghcr.io/YOUR_GH_USER/anamnesis:pr
+          env:
+            - name: ANAMNESIS_DATABASE_URL
+              value: postgres://anamnesis_app:root@anamnesis-rw:5432/anamnesis_preview?sslmode=disable
+      # preview runs against its own pet database
+      initContainers:
+        - name: ensure-db
+          image: postgres:17-alpine
+          env:
+            - name: PGPASSWORD
+              valueFrom:
+                secretKeyRef: { name: anamnesis-db-secrets, key: postgres-password }
+          command:
+            - /bin/sh
+            - -c
+            - |
+              psql -h anamnesis-rw -U postgres -d postgres -c \
+                "SELECT 'CREATE DATABASE anamnesis_preview' WHERE NOT EXISTS (SELECT FROM pg_database WHERE datname = 'anamnesis_preview')\\gexec"
+              psql -h anamnesis-rw -U postgres -d anamnesis_preview -c \
+                "CREATE ROLE IF NOT EXISTS anamnesis_app LOGIN PASSWORD 'root';" || true
+              psql -h anamnesis-rw -U postgres -d anamnesis_preview -c \
+                "GRANT ALL ON SCHEMA public TO anamnesis_app;"

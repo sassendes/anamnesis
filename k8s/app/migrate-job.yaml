@@ -1,0 +1,57 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: anamnesis-migrate
+  namespace: default
+  labels:
+    app.kubernetes.io/name: anamnesis-migrate
+    app.kubernetes.io/component: migration
+  annotations:
+    # Run as an Argo CD PreSync hook so the schema is up to date before the API
+    # rolls out; recreate it on each sync.
+    argocd.argoproj.io/hook: PreSync
+    argocd.argoproj.io/hook-delete-policy: BeforeHookCreation
+spec:
+  backoffLimit: 3
+  ttlSecondsAfterFinished: 600
+  template:
+    metadata:
+      labels:
+        app: anamnesis-migrate
+    spec:
+      restartPolicy: Never
+      serviceAccountName: anamnesis-api
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 65532
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: migrate
+          image: anamnesis:local
+          imagePullPolicy: Never
+          env:
+            - name: ANAMNESIS_RUN_MIGRATIONS
+              value: "1"
+            # Superuser connection: migrations create the anamnesis_app role,
+            # extensions and grants, so they cannot run as the app role itself.
+            - name: ANAMNESIS_DATABASE_URL
+              value: "postgres://postgres:root@anamnesis-rw:5432/anamnesis?sslmode=disable"
+            - name: ANAMNESIS_JWT_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: anamnesis-secrets
+                  key: jwt-secret
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop:
+                - ALL
+          resources:
+            requests:
+              cpu: 50m
+              memory: 64Mi
+            limits:
+              cpu: 500m
+              memory: 256Mi

@@ -1,0 +1,14 @@
+apiVersion: chaos-mesh.org/v1alpha1
+kind: PodChaos
+metadata:
+  name: anamnesis-api-pod-kill
+  namespace: default
+spec:
+  action: pod-kill
+  mode: one
+  selector:
+    labelSelectors:
+      app: anamnesis-api
+  duration: 30s
+  scheduler:
+    cron: "@hourly"

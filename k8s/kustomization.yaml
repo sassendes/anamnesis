@@ -1,0 +1,39 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+namespace: default
+resources:
+  - app/migrate-job.yaml
+  - app/deployment.yaml
+  - app/service.yaml
+  - app/hpa.yaml
+  - app/ingress.yaml
+  - web/deployment.yaml
+  - postgres/cnpg-cluster.yaml
+  - postgres/pdb.yaml
+  - postgres/scheduled-backup.yaml
+  - secrets/minio-secrets.yaml
+  - secrets/cnpg-superuser.yaml
+  - secrets/anamnesis-app-owner.yaml
+  - secrets/cnpg-s3.yaml
+  - secrets/anamnesis-db-secrets.yaml
+  - secrets/anamnesis-secrets.yaml
+  - backup/backup-pvc.yaml
+  - backup/minio.yaml
+  - app/pdb.yaml
+  - web/pdb.yaml
+  - events/nats.yaml
+  - security/network-policies.yaml
+  - security/service-accounts.yaml
+  - observability/prometheus.yaml
+  - observability/prometheus-config.yaml
+  - observability/alertmanager.yaml
+  - observability/loki.yaml
+  - observability/promtail.yaml
+  - observability/postgres-exporter.yaml
+  - observability/postgres-exporter-queries.yaml
+  - observability/blackbox-exporter.yaml
+  - observability/grafana.yaml
+  - observability/kube-state-metrics.yaml
+  - observability/node-exporter.yaml
+  - observability/ingress.yaml
+  - observability/tempo.yaml

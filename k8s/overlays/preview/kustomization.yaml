@@ -1,0 +1,14 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+resources:
+  - ../..
+namePrefix: preview-
+patches:
+  - path: deployment-patch.yaml
+    target:
+      kind: Deployment
+      name: anamnesis-api
+configMapGenerator:
+  - name: preview-env
+    literals:
+      - ANAMNESIS_RUN_MIGRATIONS=1

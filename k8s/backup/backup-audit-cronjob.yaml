@@ -1,0 +1,54 @@
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: backup-restore-audit
+  namespace: default
+spec:
+  schedule: "0 4 * * 1"
+  concurrencyPolicy: Forbid
+  jobTemplate:
+    spec:
+      backoffLimit: 2
+      template:
+        spec:
+          restartPolicy: Never
+          serviceAccountName: anamnesis-backup
+          containers:
+            - name: audit
+              image: postgres:17-alpine
+              env:
+                - name: PGPASSWORD
+                  valueFrom:
+                    secretKeyRef:
+                      name: anamnesis-db-secrets
+                      key: postgres-password
+                - name: AES_KEY
+                  valueFrom:
+                    secretKeyRef:
+                      name: anamnesis-db-secrets
+                      key: backup-passphrase
+              command:
+                - /bin/sh
+                - -c
+                - |
+                  NEWEST=$(ls -t /backup/*.dump.enc | head -1)
+                  [ -n "$NEWEST" ] || { echo "no backups found"; exit 1; }
+                  openssl enc -d -aes-256-cbc -salt -pbkdf2 -pass env:AES_KEY \
+                    -in "$NEWEST" | gunzip > /tmp/restore.dump
+                  createdb -h anamnesis-rw -U postgres anamnesis_audit_$$
+                  pg_restore -h anamnesis-rw -U postgres -d anamnesis_audit_$$ \
+                    /tmp/restore.dump >/dev/null 2>&1
+                  ROWS=$(psql -h anamnesis-rw -U postgres -d anamnesis_audit_$$ -tAc \
+                    "select count(*) from patients;")
+                  echo "audit: restored $NEWEST -> patients=$ROWS"
+                  psql -h anamnesis-rw -U postgres -d postgres -c \
+                    "drop database anamnesis_audit_$$;"
+                  [ "${ROWS:-0}" -gt 0 ]
+              volumeMounts:
+                - name: backup
+                  mountPath: /backups
+                  readOnly: true
+          volumes:
+            - name: backup
+              persistentVolumeClaim:
+                claimName: anamnesis-backup-pvc

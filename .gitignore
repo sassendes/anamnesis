@@ -1,0 +1,30 @@
+# rust
+/target/
+app/target/
+**/*.rs.bk
+Cargo.lock
+
+# node / web
+node_modules/
+web/node_modules/
+web/dist/
+dist/
+
+# docker image tars (the jank we were copying)
+*.tar
+anamnesis.tar
+anamnesis-web.tar
+
+# env / secrets (never commit real creds)
+.env
+*.local
+*.key
+*.pem
+
+# os / editor junk
+.DS_Store
+*.swp
+*~
+
+# build logs
+/tmp/build.log

@@ -1,0 +1,142 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: prometheus-config
+  namespace: default
+data:
+  prometheus.yml: |
+    global:
+      scrape_interval: 30s
+      evaluation_interval: 30s
+      external_labels:
+        cluster: k3s-demo
+    alerting:
+      alertmanagers:
+        - static_configs:
+            - targets: ["alertmanager:9093"]
+    rule_files:
+      - /etc/prometheus/alerts.yml
+    scrape_configs:
+      - job_name: anamnesis
+        metrics_path: /metrics
+        kubernetes_sd_configs:
+          - role: pod
+        relabel_configs:
+          - source_labels: [__meta_kubernetes_pod_annotation_prometheus_io_scrape]
+            regex: "true"
+            action: keep
+          - source_labels: [__address__]
+            action: replace
+            target_label: __address__
+            regex: (.+)
+            replacement: "${1}:8080"
+
+      - job_name: blackbox
+        metrics_path: /probe
+        params:
+          module:
+            - http_2xx
+        static_configs:
+          - targets:
+              - "http://anamnesis-api:80/api/v1/_health"
+        relabel_configs:
+          - source_labels: [__address__]
+            target_label: __param_target
+          - source_labels: [__param_target]
+            target_label: instance
+          - target_label: __address__
+            replacement: blackbox-exporter:9115
+
+      - job_name: postgres
+        static_configs:
+          - targets: ["postgres-exporter:9187"]
+            labels:
+              component: database
+      - job_name: kube-state-metrics
+        kubernetes_sd_configs:
+          - role: pod
+        relabel_configs:
+          - source_labels: [__meta_kubernetes_pod_label_app]
+            regex: kube-state-metrics
+            action: keep
+      - job_name: node-exporter
+        kubernetes_sd_configs:
+          - role: pod
+        relabel_configs:
+          - source_labels: [__meta_kubernetes_pod_label_app]
+            regex: node-exporter
+            action: keep
+          - source_labels: [__address__]
+            action: replace
+            target_label: __address__
+            regex: (.+)
+            replacement: "${1}:9100"
+  alerts.yml: |
+    groups:
+      - name: anamnesis.alerts
+        rules:
+          - alert: ApiDown
+            expr: up{job="anamnesis"} == 0
+            for: 2m
+            labels: { severity: critical }
+            annotations: { summary: "anamnesis API unreachable" }
+          - alert: ApiMany5xx
+            expr: rate(http_errors_total[5m]) > 0.5
+            for: 3m
+            labels: { severity: warning }
+            annotations: { summary: "API returning 5xx errors" }
+          - alert: ApiSlow
+            expr: histogram_quantile(0.95, sum(rate(http_request_duration_seconds_bucket[5m])) by (le)) > 1
+            for: 3m
+            labels: { severity: warning }
+            annotations: { summary: "p95 request latency above 1s" }
+
+          - alert: SloErrorBudget5m
+            expr: sum(rate(http_errors_total[5m])) / (sum(rate(http_request_duration_seconds_count[5m])) or vector(0)) > 0.02
+            for: 5m
+            labels:
+              severity: critical
+              slo: availability
+            annotations: { summary: "error ratio above 2% over 5m" }
+          - alert: SloErrorBudget30m
+            expr: sum(rate(http_errors_total[30m])) / (sum(rate(http_request_duration_seconds_count[30m])) or vector(0)) > 0.005
+            for: 10m
+            labels:
+              severity: warning
+              slo: availability
+            annotations: { summary: "error ratio above 0.5% over 30m" }
+
+          - alert: PostgresDown
+            expr: up{job="postgres"} == 0
+            for: 2m
+            labels: { severity: critical }
+            annotations: { summary: "Postgres unreachable" }
+      - name: kubernetes.alerts
+        rules:
+          - alert: PodRestarting
+            expr: increase(kube_pod_container_status_restarts_total[15m]) > 3
+            for: 5m
+            labels: { severity: warning }
+            annotations: { summary: "Pod restarting in {{ $labels.namespace }}" }
+          - alert: ReplicaUnavailable
+            expr: kube_deployment_spec_replicas - kube_deployment_status_replicas_available > 0
+            for: 5m
+            labels: { severity: warning }
+            annotations: { summary: "Deployment {{ $labels.deployment }} below desired replicas" }
+          - alert: NodeDiskFull
+            expr: 1 - node_filesystem_avail_bytes{mountpoint="/",fstype=~"ext4|xfs"} / node_filesystem_size_bytes{mountpoint="/",fstype=~"ext4|xfs"} > 0.9
+            for: 5m
+            labels: { severity: critical }
+            annotations: { summary: "Node filesystem > 90% used" }
+          - alert: BackupStale
+            expr: time() - max(kube_cronjob_status_last_successful_time{cronjob="postgres-backup"}) > 3 * 24 * 3600
+            for: 1h
+            labels: { severity: critical }
+            annotations: { summary: "No successful backup in the last 3 days" }
+          - alert: HpaMaxedOut
+            expr: kube_horizontalpodautoscaler_status_current_replicas == kube_horizontalpodautoscaler_spec_max_replicas
+            for: 5m
+            labels: { severity: warning }
+            annotations: { summary: "HPA at max replicas" }
+
+

@@ -1,0 +1,14 @@
+FROM rust:1.85-bookworm AS builder
+WORKDIR /src
+# build.rs is required (it sets GIT_VERSION via env!); Cargo.lock pins deps.
+COPY Cargo.toml Cargo.lock build.rs ./
+COPY migrations ./migrations
+COPY src ./src
+RUN cargo build --release --bin anamnesis
+
+FROM rust:1.85-bookworm
+WORKDIR /src
+COPY --from=builder /src/target/release/anamnesis /usr/local/bin/anamnesis
+COPY migrations ./migrations
+EXPOSE 8080
+ENTRYPOINT ["/usr/local/bin/anamnesis"]

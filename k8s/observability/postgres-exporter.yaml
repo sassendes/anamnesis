@@ -1,0 +1,55 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: postgres-exporter
+  namespace: default
+  labels:
+    app: postgres-exporter
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: postgres-exporter
+  template:
+    metadata:
+      labels:
+        app: postgres-exporter
+    spec:
+      serviceAccountName: postgres-exporter
+      containers:
+        - name: exporter
+          image: prometheuscommunity/postgres-exporter:v0.16.0
+          args:
+            - --config.file=/config/queries.yaml
+          env:
+            - name: DATA_SOURCE_NAME
+              value: "postgresql://postgres:root@anamnesis-rw:5432/postgres?sslmode=disable"
+          volumeMounts:
+            - name: queries
+              mountPath: /config
+              readOnly: true
+          ports:
+            - name: metrics
+              containerPort: 9187
+          resources:
+            requests: { cpu: 50m, memory: 64Mi }
+            limits: { cpu: 200m, memory: 256Mi }
+      volumes:
+        - name: queries
+          configMap:
+            name: postgres-exporter-queries
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: postgres-exporter
+  namespace: default
+spec:
+  selector:
+    app: postgres-exporter
+  ports:
+    - name: metrics
+      port: 9187
+      targetPort: metrics
+
+

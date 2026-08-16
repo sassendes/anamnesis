@@ -1,0 +1,17 @@
+apiVersion: chaos-mesh.org/v1alpha1
+kind: NetworkChaos
+metadata:
+  name: anamnesis-api-latency
+  namespace: default
+spec:
+  action: delay
+  mode: one
+  selector:
+    labelSelectors:
+      app: anamnesis-api
+  delay:
+    latency: 400ms
+    jitter: 100ms
+  duration: 5m
+  scheduler:
+    cron: "@hourly"

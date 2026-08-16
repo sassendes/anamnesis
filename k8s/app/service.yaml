@@ -1,0 +1,16 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: anamnesis-api
+  namespace: default
+  labels:
+    app: anamnesis-api
+spec:
+  selector:
+    app: anamnesis-api
+  ports:
+    - name: http
+      port: 80
+      targetPort: http
+
+

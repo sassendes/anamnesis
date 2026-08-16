@@ -1,0 +1,50 @@
+apiVersion: postgresql.cnpg.io/v1
+kind: Cluster
+metadata:
+  name: anamnesis
+  namespace: default
+spec:
+  description: HA anamnesis PostgreSQL, 3 instances, sync replication
+  instances: 3
+  enableSuperuserAccess: true
+  superuserSecret:
+    name: cnpg-superuser
+  imageName: ghcr.io/cloudnative-pg/postgresql:17.4
+  storage:
+    size: 20Gi
+  bootstrap:
+    initdb:
+      database: anamnesis
+      owner: anamnesis_app
+      secret:
+        name: anamnesis-app-owner
+      postInitSQL:
+        - CREATE EXTENSION IF NOT EXISTS pg_stat_statements
+  postgresql:
+    parameters:
+      pg_stat_statements.max: "5000"
+      pg_stat_statements.track: all
+      max_wal_senders: "16"
+  affinity:
+    enablePodAntiAffinity: true
+  topologySpreadConstraints:
+    - maxSkew: 1
+      topologyKey: kubernetes.io/hostname
+      whenUnsatisfiable: ScheduleAnyway
+      labelSelector:
+        matchLabels:
+          cnpg.io/cluster: anamnesis
+  backup:
+    barmanObjectStore:
+      destinationPath: s3://anamnesis/wals
+      endpointURL: http://minio:9000
+      s3Credentials:
+        accessKeyId:
+          name: cnpg-s3
+          key: ACCESS_KEY_ID
+        secretAccessKey:
+          name: cnpg-s3
+          key: SECRET_ACCESS_KEY
+      wal:
+        compression: gzip
+        maxParallel: 4

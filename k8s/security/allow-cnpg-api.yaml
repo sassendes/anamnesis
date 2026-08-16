@@ -1,0 +1,13 @@
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-cnpg-api
+  namespace: default
+spec:
+  podSelector:
+    matchLabels:
+      cnpg.io/cluster: anamnesis
+  policyTypes:
+    - Egress
+  egress:
+    - {}

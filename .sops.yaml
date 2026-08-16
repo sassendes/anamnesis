@@ -1,0 +1,8 @@
+creation_rules:
+  - path_regex: k8s/secrets/.*\.(ya?ml)$
+    encrypted_regex: "^(data|stringData)$"
+    key_groups:
+      - age:
+          - age1changeme000000000000000000000000000000000000000000000
+    profiles:
+      - default

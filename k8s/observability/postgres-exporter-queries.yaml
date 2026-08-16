@@ -1,0 +1,59 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: postgres-exporter-queries
+  namespace: default
+data:
+  queries.yaml: |
+    pg_stat_statements_top:
+      query: |
+        SELECT
+          queryid,
+          left(query, 80) AS query_text,
+          calls,
+          total_exec_time AS total_ms,
+          mean_exec_time AS mean_ms,
+          rows
+        FROM pg_stat_statements
+        ORDER BY total_exec_time DESC
+        LIMIT 25
+      metrics:
+        - calls:
+            usage: "GAUGE"
+            description: "total executions"
+        - total_ms:
+            usage: "GAUGE"
+            description: "total execution time ms"
+        - mean_ms:
+            usage: "GAUGE"
+            description: "mean execution time ms"
+        - rows:
+            usage: "GAUGE"
+            description: "rows processed"
+    pg_statio_user_tables:
+      query: |
+        SELECT
+          schemaname,
+          relname,
+          idx_scan,
+          seq_scan,
+          seq_tup_read,
+          heap_blks_read,
+          heap_blks_hit
+        FROM pg_statio_user_tables
+      metrics:
+        - idx_scan:
+            usage: "COUNTER"
+            description: "index scans"
+        - seq_scan:
+            usage: "COUNTER"
+            description: "seq scans"
+        - seq_tup_read:
+            usage: "COUNTER"
+            description: "seq blocks read"
+        - heap_blks_read:
+            usage: "COUNTER"
+            description: "heap blocks read"
+        - heap_blks_hit:
+            usage: "COUNTER"
+            description: "heap blocks hit"

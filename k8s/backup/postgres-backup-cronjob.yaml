@@ -1,0 +1,76 @@
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: postgres-backup
+  namespace: default
+spec:
+  schedule: "0 2 * * *"
+  concurrencyPolicy: Forbid
+  jobTemplate:
+    spec:
+      backoffLimit: 3
+      template:
+        spec:
+          restartPolicy: Never
+          serviceAccountName: anamnesis-backup
+          containers:
+            - name: backup
+              image: postgres:17-alpine
+              env:
+                - name: PGPASSWORD
+                  valueFrom:
+                    secretKeyRef:
+                      name: anamnesis-db-secrets
+                      key: postgres-password
+                - name: BACKUP_PASSPHRASE
+                  valueFrom:
+                    secretKeyRef:
+                      name: anamnesis-db-secrets
+                      key: backup-passphrase
+              command:
+                - /bin/sh
+                - -c
+                - |
+                  F=/backup/anamnesis-$(date +%F-%H%M%S)
+                  pg_dump -h anamnesis-rw -U postgres -d anamnesis --format=custom \
+                    | gzip | openssl enc -aes-256-cbc -salt -pbkdf2 -pass env:AES_KEY \
+                      > $F.dump.enc && \
+                  openssl dgst -sha256 -pass pass: -out $F.sha256 $F.dump.enc && \
+                  echo "backup written: $F.dump.enc" && \
+                  find /backup -name '*.dump.enc' -mtime +14 -delete
+              volumeMounts:
+                - name: backup
+                  mountPath: /backup
+            - name: s3
+              image: minio/mc:RELEASE.2025-04-07T15-25-16Z
+              env:
+                - name: MINIO_ROOT_USER
+                  valueFrom:
+                    secretKeyRef:
+                      name: minio-secrets
+                      key: minio-user
+                - name: MINIO_ROOT_PASSWORD
+                  valueFrom:
+                    secretKeyRef:
+                      name: minio-secrets
+                      key: minio-password
+              command:
+                - /bin/sh
+                - -c
+                - |
+                  for i in $(seq 1 60); do
+                    if [ -n "$(ls /backup/*.dump.enc 2>/dev/null | tail -1)" ]; then break; fi
+                    sleep 30
+                  done
+                  [ -n "$(ls /backup/*.dump.enc 2>/dev/null | tail -1)" ] || { echo "timed out waiting for dump"; exit 1; }
+                  mc alias set anamnesis http://minio:9000 $MINIO_ROOT_USER $MINIO_ROOT_PASSWORD
+                  mc mb -p anamnesis/backups >/dev/null 2>&1 || true
+                  mc mirror --overwrite /backup anamnesis/backups
+                  echo "s3 sync complete"
+              volumeMounts:
+                - name: backup
+                  mountPath: /backup
+          volumes:
+            - name: backup
+              persistentVolumeClaim:
+                claimName: anamnesis-backup-pvc

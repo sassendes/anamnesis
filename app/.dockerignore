@@ -1,0 +1,7 @@
+target/
+.git/
+.env
+*.local
+Dockerfile*
+.dockerignore
+tests/
