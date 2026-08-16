@@ -56,3 +56,4 @@ resources:
   - observability/grafana-dashboards.yaml
   - observability/grafana-node-dashboard.yaml
   - observability/grafana-ingress.yaml
+  - security/allow-web-ingress.yaml
