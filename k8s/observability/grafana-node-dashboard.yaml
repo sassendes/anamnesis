@@ -1,0 +1,58 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: grafana-dashboards-nodes
+  namespace: default
+data:
+  nodes.json: |
+    {
+      "title": "Node Resources",
+      "uid": "node-resources",
+      "editable": true,
+      "refresh": "30s",
+      "timezone": "browser",
+      "schemaVersion": 39,
+      "time": { "from": "now-1h", "to": "now" },
+      "panels": [
+        {
+          "title": "CPU Usage % (per node)",
+          "type": "timeseries",
+          "gridPos": { "h": 8, "w": 12, "x": 0, "y": 0 },
+          "targets": [
+            { "expr": "100 - (avg by (instance) (rate(node_cpu_seconds_total{mode=\"idle\"}[5m])) * 100)", "legendFormat": "{{instance}}" }
+          ]
+        },
+        {
+          "title": "Memory Used %",
+          "type": "timeseries",
+          "gridPos": { "h": 8, "w": 12, "x": 12, "y": 0 },
+          "targets": [
+            { "expr": "100 * (1 - (node_memory_MemAvailable_bytes / node_memory_MemTotal_bytes))", "legendFormat": "{{instance}}" }
+          ]
+        },
+        {
+          "title": "Disk Used % (root)",
+          "type": "timeseries",
+          "gridPos": { "h": 8, "w": 12, "x": 0, "y": 8 },
+          "targets": [
+            { "expr": "100 - (node_filesystem_avail_bytes{mountpoint=\"/\"} / node_filesystem_size_bytes{mountpoint=\"/\"} * 100)", "legendFormat": "{{instance}}" }
+          ]
+        },
+        {
+          "title": "Network Receive (bytes/s)",
+          "type": "timeseries",
+          "gridPos": { "h": 8, "w": 12, "x": 12, "y": 8 },
+          "targets": [
+            { "expr": "rate(node_network_receive_bytes_total{device!=\"lo\"}[5m])", "legendFormat": "{{instance}} {{device}}" }
+          ]
+        },
+        {
+          "title": "Load Average (1m)",
+          "type": "timeseries",
+          "gridPos": { "h": 8, "w": 24, "x": 0, "y": 16 },
+          "targets": [
+            { "expr": "node_load1", "legendFormat": "{{instance}}" }
+          ]
+        }
+      ]
+    }

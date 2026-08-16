@@ -1,0 +1,146 @@
+apiVersion: v1
+data:
+  anamnesis.json: |
+    {
+      "title": "Anamnesis API",
+      "uid": "anamnesis-api",
+      "editable": true,
+      "refresh": "30s",
+      "timezone": "browser",
+      "schemaVersion": 39,
+      "time": { "from": "now-1h", "to": "now" },
+      "panels": [
+        {
+          "title": "Requests / sec",
+          "type": "timeseries",
+          "gridPos": { "h": 8, "w": 12, "x": 0, "y": 0 },
+          "datasource": {"type": "prometheus", "uid": "PBFA97CFB590B2093"}, "targets": [
+            { "datasource": {"type": "prometheus", "uid": "PBFA97CFB590B2093"}, "expr": "sum(rate(http_request_duration_seconds_count[5m]))", "legendFormat": "requests/s" }
+          ]
+        },
+        {
+          "title": "5xx errors / sec",
+          "type": "timeseries",
+          "gridPos": { "h": 8, "w": 12, "x": 12, "y": 0 },
+          "datasource": {"type": "prometheus", "uid": "PBFA97CFB590B2093"}, "targets": [
+            { "datasource": {"type": "prometheus", "uid": "PBFA97CFB590B2093"}, "expr": "sum(rate(http_errors_total[5m]))", "legendFormat": "errors/s" }
+          ]
+        },
+        {
+          "title": "p95 latency",
+          "type": "timeseries",
+          "gridPos": { "h": 8, "w": 12, "x": 0, "y": 8 },
+          "datasource": {"type": "prometheus", "uid": "PBFA97CFB590B2093"}, "targets": [
+            { "datasource": {"type": "prometheus", "uid": "PBFA97CFB590B2093"}, "expr": "histogram_quantile(0.95, sum(rate(http_request_duration_seconds_bucket[5m])) by (le))", "legendFormat": "p95" }
+          ]
+        },
+        {
+          "title": "Up targets",
+          "type": "stat",
+          "gridPos": { "h": 8, "w": 12, "x": 12, "y": 8 },
+          "datasource": {"type": "prometheus", "uid": "PBFA97CFB590B2093"}, "targets": [
+            { "datasource": {"type": "prometheus", "uid": "PBFA97CFB590B2093"}, "expr": "up", "legendFormat": "{{job}}" }
+          ]
+        }
+      ]
+    }
+  nodes.json: |
+    {
+      "title": "Node Resources",
+      "uid": "node-resources",
+      "editable": true,
+      "refresh": "30s",
+      "timezone": "browser",
+      "schemaVersion": 39,
+      "time": { "from": "now-1h", "to": "now" },
+      "panels": [
+        {
+          "title": "CPU Usage % (per node)",
+          "type": "timeseries",
+          "gridPos": { "h": 8, "w": 12, "x": 0, "y": 0 },
+          "datasource": {"type": "prometheus", "uid": "PBFA97CFB590B2093"}, "targets": [
+            { "datasource": {"type": "prometheus", "uid": "PBFA97CFB590B2093"}, "expr": "100 - (avg by (instance) (rate(node_cpu_seconds_total{mode=\"idle\"}[5m])) * 100)", "legendFormat": "{{instance}}" }
+          ]
+        },
+        {
+          "title": "Memory Used %",
+          "type": "timeseries",
+          "gridPos": { "h": 8, "w": 12, "x": 12, "y": 0 },
+          "datasource": {"type": "prometheus", "uid": "PBFA97CFB590B2093"}, "targets": [
+            { "datasource": {"type": "prometheus", "uid": "PBFA97CFB590B2093"}, "expr": "100 * (1 - (node_memory_MemAvailable_bytes / node_memory_MemTotal_bytes))", "legendFormat": "{{instance}}" }
+          ]
+        },
+        {
+          "title": "Disk Used % (root)",
+          "type": "timeseries",
+          "gridPos": { "h": 8, "w": 12, "x": 0, "y": 8 },
+          "datasource": {"type": "prometheus", "uid": "PBFA97CFB590B2093"}, "targets": [
+            { "datasource": {"type": "prometheus", "uid": "PBFA97CFB590B2093"}, "expr": "100 - (node_filesystem_avail_bytes{mountpoint=\"/\"} / node_filesystem_size_bytes{mountpoint=\"/\"} * 100)", "legendFormat": "{{instance}}" }
+          ]
+        },
+        {
+          "title": "Network Receive (bytes/s)",
+          "type": "timeseries",
+          "gridPos": { "h": 8, "w": 12, "x": 12, "y": 8 },
+          "datasource": {"type": "prometheus", "uid": "PBFA97CFB590B2093"}, "targets": [
+            { "datasource": {"type": "prometheus", "uid": "PBFA97CFB590B2093"}, "expr": "rate(node_network_receive_bytes_total{device!=\"lo\"}[5m])", "legendFormat": "{{instance}} {{device}}" }
+          ]
+        },
+        {
+          "title": "Load Average (1m)",
+          "type": "timeseries",
+          "gridPos": { "h": 8, "w": 24, "x": 0, "y": 16 },
+          "datasource": {"type": "prometheus", "uid": "PBFA97CFB590B2093"}, "targets": [
+            { "datasource": {"type": "prometheus", "uid": "PBFA97CFB590B2093"}, "expr": "node_load1", "legendFormat": "{{instance}}" }
+          ]
+        }
+      ]
+    }
+  postgres.json: |
+    {
+      "title": "Postgres Overview",
+      "uid": "anamnesis-pg",
+      "timezone": "browser",
+      "editable": true,
+      "refresh": "30s",
+      "schemaVersion": 39,
+      "time": { "from": "now-1h", "to": "now" },
+      "panels": [
+        {
+          "id": 1, "type": "stat", "title": "Connections",
+          "gridPos": {"x": 0, "y": 0, "w": 6, "h": 4},
+          "datasource": {"type": "prometheus", "uid": "PBFA97CFB590B2093"},
+          "targets": [{"datasource": {"type": "prometheus", "uid": "PBFA97CFB590B2093"}, "expr": "sum(pg_stat_database_numbackends)", "refId": "A"}]
+        },
+        {
+          "id": 2, "type": "stat", "title": "Cache Hit Ratio %",
+          "gridPos": {"x": 6, "y": 0, "w": 6, "h": 4},
+          "datasource": {"type": "prometheus", "uid": "PBFA97CFB590B2093"},
+          "targets": [{"datasource": {"type": "prometheus", "uid": "PBFA97CFB590B2093"}, "expr": "sum(pg_stat_database_blks_hit)/(sum(pg_stat_database_blks_hit)+sum(pg_stat_database_blks_read))*100", "refId": "A"}]
+        },
+        {
+          "id": 3, "type": "stat", "title": "Postgres Up",
+          "gridPos": {"x": 12, "y": 0, "w": 6, "h": 4},
+          "datasource": {"type": "prometheus", "uid": "PBFA97CFB590B2093"},
+          "targets": [{"datasource": {"type": "prometheus", "uid": "PBFA97CFB590B2093"}, "expr": "pg_up", "refId": "A"}]
+        },
+        {
+          "id": 4, "type": "timeseries", "title": "Commits / sec",
+          "gridPos": {"x": 0, "y": 4, "w": 12, "h": 8},
+          "datasource": {"type": "prometheus", "uid": "PBFA97CFB590B2093"},
+          "targets": [{"datasource": {"type": "prometheus", "uid": "PBFA97CFB590B2093"}, "expr": "sum(rate(pg_stat_database_xact_commit[5m]))", "legendFormat": "commits/s", "refId": "A"}]
+        },
+        {
+          "id": 5, "type": "timeseries", "title": "Rollbacks / sec",
+          "gridPos": {"x": 12, "y": 4, "w": 12, "h": 8},
+          "datasource": {"type": "prometheus", "uid": "PBFA97CFB590B2093"},
+          "targets": [{"datasource": {"type": "prometheus", "uid": "PBFA97CFB590B2093"}, "expr": "sum(rate(pg_stat_database_xact_rollback[5m]))", "legendFormat": "rollbacks/s", "refId": "A"}]
+        }
+      ]
+    }
+kind: ConfigMap
+metadata:
+    kubectl.kubernetes.io/last-applied-configuration: |
+      {"apiVersion":"v1","data":{"anamnesis.json":"{\n  \"title\": \"Anamnesis API\",\n  \"uid\": \"anamnesis-api\",\n  \"editable\": true,\n  \"refresh\": \"30s\",\n  \"timezone\": \"browser\",\n  \"schemaVersion\": 39,\n  \"time\": { \"from\": \"now-1h\", \"to\": \"now\" },\n  \"panels\": [\n    {\n      \"title\": \"Requests / sec\",\n      \"type\": \"timeseries\",\n      \"gridPos\": { \"h\": 8, \"w\": 12, \"x\": 0, \"y\": 0 },\n      \"datasource\": {\"type\": \"prometheus\", \"uid\": \"PBFA97CFB590B2093\"}, \"targets\": [\n        { \"datasource\": {\"type\": \"prometheus\", \"uid\": \"PBFA97CFB590B2093\"}, \"expr\": \"sum(rate(http_request_duration_seconds_count[5m]))\", \"legendFormat\": \"requests/s\" }\n      ]\n    },\n    {\n      \"title\": \"5xx errors / sec\",\n      \"type\": \"timeseries\",\n      \"gridPos\": { \"h\": 8, \"w\": 12, \"x\": 12, \"y\": 0 },\n      \"datasource\": {\"type\": \"prometheus\", \"uid\": \"PBFA97CFB590B2093\"}, \"targets\": [\n        { \"datasource\": {\"type\": \"prometheus\", \"uid\": \"PBFA97CFB590B2093\"}, \"expr\": \"sum(rate(http_errors_total[5m]))\", \"legendFormat\": \"errors/s\" }\n      ]\n    },\n    {\n      \"title\": \"p95 latency\",\n      \"type\": \"timeseries\",\n      \"gridPos\": { \"h\": 8, \"w\": 12, \"x\": 0, \"y\": 8 },\n      \"datasource\": {\"type\": \"prometheus\", \"uid\": \"PBFA97CFB590B2093\"}, \"targets\": [\n        { \"datasource\": {\"type\": \"prometheus\", \"uid\": \"PBFA97CFB590B2093\"}, \"expr\": \"histogram_quantile(0.95, sum(rate(http_request_duration_seconds_bucket[5m])) by (le))\", \"legendFormat\": \"p95\" }\n      ]\n    },\n    {\n      \"title\": \"Up targets\",\n      \"type\": \"stat\",\n      \"gridPos\": { \"h\": 8, \"w\": 12, \"x\": 12, \"y\": 8 },\n      \"datasource\": {\"type\": \"prometheus\", \"uid\": \"PBFA97CFB590B2093\"}, \"targets\": [\n        { \"datasource\": {\"type\": \"prometheus\", \"uid\": \"PBFA97CFB590B2093\"}, \"expr\": \"up\", \"legendFormat\": \"{{job}}\" }\n      ]\n    }\n  ]\n}\n","nodes.json":"{\n  \"title\": \"Node Resources\",\n  \"uid\": \"node-resources\",\n  \"editable\": true,\n  \"refresh\": \"30s\",\n  \"timezone\": \"browser\",\n  \"schemaVersion\": 39,\n  \"time\": { \"from\": \"now-1h\", \"to\": \"now\" },\n  \"panels\": [\n    {\n      \"title\": \"CPU Usage % (per node)\",\n      \"type\": \"timeseries\",\n      \"gridPos\": { \"h\": 8, \"w\": 12, \"x\": 0, \"y\": 0 },\n      \"datasource\": {\"type\": \"prometheus\", \"uid\": \"PBFA97CFB590B2093\"}, \"targets\": [\n        { \"datasource\": {\"type\": \"prometheus\", \"uid\": \"PBFA97CFB590B2093\"}, \"expr\": \"100 - (avg by (instance) (rate(node_cpu_seconds_total{mode=\\\"idle\\\"}[5m])) * 100)\", \"legendFormat\": \"{{instance}}\" }\n      ]\n    },\n    {\n      \"title\": \"Memory Used %\",\n      \"type\": \"timeseries\",\n      \"gridPos\": { \"h\": 8, \"w\": 12, \"x\": 12, \"y\": 0 },\n      \"datasource\": {\"type\": \"prometheus\", \"uid\": \"PBFA97CFB590B2093\"}, \"targets\": [\n        { \"datasource\": {\"type\": \"prometheus\", \"uid\": \"PBFA97CFB590B2093\"}, \"expr\": \"100 * (1 - (node_memory_MemAvailable_bytes / node_memory_MemTotal_bytes))\", \"legendFormat\": \"{{instance}}\" }\n      ]\n    },\n    {\n      \"title\": \"Disk Used % (root)\",\n      \"type\": \"timeseries\",\n      \"gridPos\": { \"h\": 8, \"w\": 12, \"x\": 0, \"y\": 8 },\n      \"datasource\": {\"type\": \"prometheus\", \"uid\": \"PBFA97CFB590B2093\"}, \"targets\": [\n        { \"datasource\": {\"type\": \"prometheus\", \"uid\": \"PBFA97CFB590B2093\"}, \"expr\": \"100 - (node_filesystem_avail_bytes{mountpoint=\\\"/\\\"} / node_filesystem_size_bytes{mountpoint=\\\"/\\\"} * 100)\", \"legendFormat\": \"{{instance}}\" }\n      ]\n    },\n    {\n      \"title\": \"Network Receive (bytes/s)\",\n      \"type\": \"timeseries\",\n      \"gridPos\": { \"h\": 8, \"w\": 12, \"x\": 12, \"y\": 8 },\n      \"datasource\": {\"type\": \"prometheus\", \"uid\": \"PBFA97CFB590B2093\"}, \"targets\": [\n        { \"datasource\": {\"type\": \"prometheus\", \"uid\": \"PBFA97CFB590B2093\"}, \"expr\": \"rate(node_network_receive_bytes_total{device!=\\\"lo\\\"}[5m])\", \"legendFormat\": \"{{instance}} {{device}}\" }\n      ]\n    },\n    {\n      \"title\": \"Load Average (1m)\",\n      \"type\": \"timeseries\",\n      \"gridPos\": { \"h\": 8, \"w\": 24, \"x\": 0, \"y\": 16 },\n      \"datasource\": {\"type\": \"prometheus\", \"uid\": \"PBFA97CFB590B2093\"}, \"targets\": [\n        { \"datasource\": {\"type\": \"prometheus\", \"uid\": \"PBFA97CFB590B2093\"}, \"expr\": \"node_load1\", \"legendFormat\": \"{{instance}}\" }\n      ]\n    }\n  ]\n}\n","postgres.json":"{\n  \"title\": \"Postgres Overview\",\n  \"uid\": \"anamnesis-pg\",\n  \"timezone\": \"browser\",\n  \"editable\": true,\n  \"refresh\": \"30s\",\n  \"schemaVersion\": 39,\n  \"time\": { \"from\": \"now-1h\", \"to\": \"now\" },\n  \"panels\": [\n    {\n      \"id\": 1, \"type\": \"stat\", \"title\": \"Connections\",\n      \"gridPos\": {\"x\": 0, \"y\": 0, \"w\": 6, \"h\": 4},\n      \"datasource\": {\"type\": \"prometheus\", \"uid\": \"PBFA97CFB590B2093\"},\n      \"targets\": [{\"datasource\": {\"type\": \"prometheus\", \"uid\": \"PBFA97CFB590B2093\"}, \"expr\": \"sum(pg_stat_database_numbackends)\", \"refId\": \"A\"}]\n    },\n    {\n      \"id\": 2, \"type\": \"stat\", \"title\": \"Cache Hit Ratio %\",\n      \"gridPos\": {\"x\": 6, \"y\": 0, \"w\": 6, \"h\": 4},\n      \"datasource\": {\"type\": \"prometheus\", \"uid\": \"PBFA97CFB590B2093\"},\n      \"targets\": [{\"datasource\": {\"type\": \"prometheus\", \"uid\": \"PBFA97CFB590B2093\"}, \"expr\": \"sum(pg_stat_database_blks_hit)/(sum(pg_stat_database_blks_hit)+sum(pg_stat_database_blks_read))*100\", \"refId\": \"A\"}]\n    },\n    {\n      \"id\": 3, \"type\": \"stat\", \"title\": \"Postgres Up\",\n      \"gridPos\": {\"x\": 12, \"y\": 0, \"w\": 6, \"h\": 4},\n      \"datasource\": {\"type\": \"prometheus\", \"uid\": \"PBFA97CFB590B2093\"},\n      \"targets\": [{\"datasource\": {\"type\": \"prometheus\", \"uid\": \"PBFA97CFB590B2093\"}, \"expr\": \"pg_up\", \"refId\": \"A\"}]\n    },\n    {\n      \"id\": 4, \"type\": \"timeseries\", \"title\": \"Commits / sec\",\n      \"gridPos\": {\"x\": 0, \"y\": 4, \"w\": 12, \"h\": 8},\n      \"datasource\": {\"type\": \"prometheus\", \"uid\": \"PBFA97CFB590B2093\"},\n      \"targets\": [{\"datasource\": {\"type\": \"prometheus\", \"uid\": \"PBFA97CFB590B2093\"}, \"expr\": \"sum(rate(pg_stat_database_xact_commit[5m]))\", \"legendFormat\": \"commits/s\", \"refId\": \"A\"}]\n    },\n    {\n      \"id\": 5, \"type\": \"timeseries\", \"title\": \"Rollbacks / sec\",\n      \"gridPos\": {\"x\": 12, \"y\": 4, \"w\": 12, \"h\": 8},\n      \"datasource\": {\"type\": \"prometheus\", \"uid\": \"PBFA97CFB590B2093\"},\n      \"targets\": [{\"datasource\": {\"type\": \"prometheus\", \"uid\": \"PBFA97CFB590B2093\"}, \"expr\": \"sum(rate(pg_stat_database_xact_rollback[5m]))\", \"legendFormat\": \"rollbacks/s\", \"refId\": \"A\"}]\n    }\n  ]\n}\n"},"kind":"ConfigMap","metadata":{"annotations":{},"name":"grafana-dashboards","namespace":"default"}}
+  name: grafana-dashboards
+  namespace: default

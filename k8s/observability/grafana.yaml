@@ -95,60 +95,112 @@ metadata:
   name: grafana-dashboard-provider---
 ---
 apiVersion: apps/v1
+---
+apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: grafana
-  namespace: default
+  annotations:
+    deployment.kubernetes.io/revision: "9"
+    kubectl.kubernetes.io/last-applied-configuration: |
+      {"apiVersion":"apps/v1","kind":"Deployment","metadata":{"annotations":{},"labels":{"app":"grafana"},"name":"grafana","namespace":"default"},"spec":{"replicas":1,"selector":{"matchLabels":{"app":"grafana"}},"template":{"metadata":{"labels":{"app":"grafana"}},"spec":{"containers":[{"env":[{"name":"GF_SECURITY_ADMIN_USER","value":"admin"},{"name":"GF_SECURITY_ADMIN_PASSWORD","value":"admin"},{"name":"GF_AUTH_ANONYMOUS_ENABLED","value":"true"}],"image":"grafana/grafana:11.3.0","name":"grafana","ports":[{"containerPort":3000,"name":"http"}],"readinessProbe":{"httpGet":{"path":"/api/health","port":"http"},"initialDelaySeconds":10,"periodSeconds":10},"volumeMounts":[{"mountPath":"/etc/grafana/provisioning/datasources","name":"datasources"}]}],"volumes":[{"configMap":{"name":"grafana-datasources"},"name":"datasources"}]}}}}
   labels:
     app: grafana
+  name: grafana
+  namespace: default
 spec:
+  progressDeadlineSeconds: 600
   replicas: 1
+  revisionHistoryLimit: 10
   selector:
     matchLabels:
       app: grafana
+  strategy:
+    rollingUpdate:
+      maxSurge: 25%
+      maxUnavailable: 25%
+    type: RollingUpdate
   template:
     metadata:
+      annotations:
+        kubectl.kubernetes.io/restartedAt: "2026-08-16T15:07:21+01:00"
       labels:
         app: grafana
     spec:
       containers:
-        - name: grafana
-          image: grafana/grafana:11.3.0
-          ports:
-            - name: http
-              containerPort: 3000
-          env:
-            - name: GF_SECURITY_ADMIN_USER
-              value: admin
-            - name: GF_SECURITY_ADMIN_PASSWORD
-              value: admin
-            - name: GF_AUTH_ANONYMOUS_ENABLED
-              value: "true"
-          volumeMounts:
-            - name: datasources
-              mountPath: /etc/grafana/provisioning/datasources
-          readinessProbe:
-            httpGet:
-              path: /api/health
-              port: http
-            initialDelaySeconds: 10
-            periodSeconds: 10
+      - env:
+        - name: GF_SECURITY_ADMIN_USER
+          value: admin
+        - name: GF_SECURITY_ADMIN_PASSWORD
+          value: admin
+        - name: GF_AUTH_ANONYMOUS_ENABLED
+          value: "true"
+        image: grafana/grafana:11.3.0
+        imagePullPolicy: IfNotPresent
+        name: grafana
+        ports:
+        - containerPort: 3000
+          name: http
+          protocol: TCP
+        readinessProbe:
+          failureThreshold: 3
+          httpGet:
+            path: /api/health
+            port: http
+            scheme: HTTP
+          initialDelaySeconds: 10
+          periodSeconds: 10
+          successThreshold: 1
+          timeoutSeconds: 1
+        resources: {}
+        terminationMessagePath: /dev/termination-log
+        terminationMessagePolicy: File
+        volumeMounts:
+        - mountPath: /etc/grafana/provisioning/datasources
+          name: datasources
+        - mountPath: /etc/grafana/provisioning/dashboards
+          name: dash-provider
+        - mountPath: /var/lib/grafana/dashboards
+          name: dash-json
+      dnsPolicy: ClusterFirst
+      restartPolicy: Always
+      schedulerName: default-scheduler
+      securityContext: {}
+      terminationGracePeriodSeconds: 30
       volumes:
-        - name: datasources
-          configMap:
-            name: grafana-datasources
----
+      - configMap:
+          defaultMode: 420
+          name: grafana-datasources
+        name: datasources
+      - configMap:
+          defaultMode: 420
+          name: grafana-dashboard-provider
+        name: dash-provider
+      - configMap:
+          defaultMode: 420
+          name: grafana-dashboards
+        name: dash-json
 apiVersion: v1
 kind: Service
 metadata:
-  name: grafana
-  namespace: default
+  annotations:
+    kubectl.kubernetes.io/last-applied-configuration: |
+      {"apiVersion":"v1","kind":"Service","metadata":{"annotations":{},"labels":{"app":"grafana"},"name":"grafana","namespace":"default"},"spec":{"ports":[{"name":"http","port":3000,"targetPort":"http"}],"selector":{"app":"grafana"}}}
   labels:
     app: grafana
+  name: grafana
+  namespace: default
 spec:
+  - 10.43.68.248
+  internalTrafficPolicy: Cluster
+  ipFamilies:
+  - IPv4
+  ipFamilyPolicy: SingleStack
+  ports:
+  - name: http
+    port: 3000
+    protocol: TCP
+    targetPort: http
   selector:
     app: grafana
-  ports:
-    - name: http
-      port: 3000
-      targetPort: http
+  sessionAffinity: None
+  type: ClusterIP
