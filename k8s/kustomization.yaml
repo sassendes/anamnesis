@@ -37,3 +37,23 @@ resources:
   - observability/node-exporter.yaml
   - observability/ingress.yaml
   - observability/tempo.yaml
+  - security/allow-cnpg-api.yaml
+  - security/allow-migrate.yaml
+  - security/allow-postgres-exporter.yaml
+  - security/allow-prometheus.yaml
+  - security/allow-grafana.yaml
+  - security/allow-grafana-pg.yaml
+  - security/allow-grafana-egress-pg.yaml
+  - security/allow-grafana-ingress.yaml
+  - security/allow-loki.yaml
+  - security/allow-tempo.yaml
+  - security/allow-nats.yaml
+  - security/allow-app-egress.yaml
+  - security/allow-promtail-api.yaml
+  - security/allow-scrape-ingress.yaml
+  - security/pki.yaml
+  - observability/grafana-dashboard-provider.yaml
+  - observability/grafana-dashboards.yaml
+  - observability/grafana-node-dashboard.yaml
+  - observability/grafana-ingress.yaml
+  - observability/blackbox-probe.yaml
