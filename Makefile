@@ -47,7 +47,3 @@ manifests-dryrun:
 manifests:
 	kubectl apply -k k8s/
 
-install-git-hooks:
-	cp scripts/commit-hook .git/hooks/pre-commit
-	chmod +x .git/hooks/pre-commit
-	@echo "pre-commit hook installed"
