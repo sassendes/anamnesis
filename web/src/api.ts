@@ -20,7 +20,7 @@ export async function api<T>(path: string, init: RequestInit = {}): Promise<T> {
   const res = await fetch(`/api/v1${path}`, { ...init, headers });
   const body = await res.json().catch(() => ({}));
   if (!res.ok) {
-    throw new ApiError(res.status, body.error ?? body.message ?? res.statusText);
+    throw new ApiError(res.status, body.error?.message ?? body.message ?? res.statusText);
   }
   return body as T;
 }

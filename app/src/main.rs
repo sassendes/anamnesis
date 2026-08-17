@@ -54,6 +54,7 @@ async fn main() -> anyhow::Result<()> {
     }
 
     let app = anamnesis::routes::router(state.clone())
+        .layer(axum::middleware::from_fn(anamnesis::metrics::track_http))
         .layer(RequestBodyLimitLayer::new(2 * 1024 * 1024))
         .layer(CorsLayer::permissive())
         .layer(TraceLayer::new_for_http())

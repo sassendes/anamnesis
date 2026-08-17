@@ -66,6 +66,31 @@ pub fn record_http(method: &str, route: &str, status: u16, seconds: f64) {
     }
 }
 
+/// Times every request and feeds [`record_http`]. Uses the matched route
+/// pattern (e.g. `/patients/{id}`) rather than the raw path, so per-id URLs
+/// don't explode label cardinality.
+pub async fn track_http(
+    req: axum::extract::Request,
+    next: axum::middleware::Next,
+) -> axum::response::Response {
+    let method = req.method().as_str().to_owned();
+    let route = req
+        .extensions()
+        .get::<axum::extract::MatchedPath>()
+        .map(|p| p.as_str().to_owned())
+        .unwrap_or_else(|| req.uri().path().to_owned());
+
+    let start = std::time::Instant::now();
+    let resp = next.run(req).await;
+    record_http(
+        &method,
+        &route,
+        resp.status().as_u16(),
+        start.elapsed().as_secs_f64(),
+    );
+    resp
+}
+
 pub fn metrics_body() -> anyhow::Result<String> {
     let encoder = TextEncoder::new();
     let mut body = String::new();

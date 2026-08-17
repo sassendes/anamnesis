@@ -41,7 +41,7 @@ async fn list_audit(
     let mut tx = begin_as_tenant(&state.pool, user.hospital_id()).await?;
     let events = sqlx::query_as::<_, AuditEvent>(
         r#"
-        SELECT id, hospital_id, table_name, record_key, operation,
+        SELECT id, hospital_id, table_name, record_key AS record, operation AS action,
                old_json AS "before", new_json AS "after", changed_by AS by_user, changed_at AS at
         FROM app_audit
         WHERE hospital_id = app.current_hospital_id()
