@@ -10,12 +10,12 @@ web/node_modules/
 web/dist/
 dist/
 
-# docker image tars (the jank we were copying)
+# docker image tars 
 *.tar
 anamnesis.tar
 anamnesis-web.tar
 
-# env / secrets (never commit real creds)
+# env / secret
 .env
 *.local
 *.key
