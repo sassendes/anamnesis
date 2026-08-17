@@ -149,3 +149,29 @@ th {
   margin: 4px 0 0;
   font-size: 13px;
 }
+/* --- crud additions --- */
+.field { display: grid; gap: 4px; font-size: 13px; }
+.field span { color: var(--muted); }
+select {
+  background: var(--bg);
+  color: var(--text);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 10px 12px;
+}
+.cardhead { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; }
+.cardhead h2 { margin: 0; }
+button.mini { padding: 6px 10px; font-size: 13px; font-weight: 500; }
+button.ghost { background: transparent; color: var(--muted); border: 1px solid var(--line); }
+.pform {
+  display: grid;
+  gap: 10px;
+  background: var(--bg);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  padding: 16px;
+  margin-bottom: 18px;
+  max-width: 420px;
+}
+.pform h3 { margin: 0 0 4px; font-size: 14px; text-transform: uppercase; letter-spacing: 0.05em; color: var(--muted); }
+.pform .row { display: flex; gap: 8px; margin-top: 6px; }
