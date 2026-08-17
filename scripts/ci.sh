@@ -18,7 +18,7 @@ cargo build --manifest-path "$MANIFEST" --release
 
 echo "==> k8s manifest dry-run"
 if command -v kubectl >/dev/null 2>&1; then
-  kubectl apply --dry-run=client -f k8s/ 2>&1 || true
+  kubectl apply --dry-run=client -k k8s/ 2>&1 || true
 else
   echo "(kubectl not found, skipping)"
 fi
